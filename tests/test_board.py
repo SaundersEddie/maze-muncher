@@ -131,3 +131,47 @@ def test_board_counts_remaining_pellets() -> None:
 
     assert board.remaining_pellets() == 5
 
+
+def test_board_detects_power_pellet() -> None:
+    board = Board(
+        [
+            "#####",
+            "#o..#",
+            "#####",
+        ]
+    )
+
+    assert board.has_power_pellet(Position(1, 1))
+    assert not board.has_power_pellet(Position(1, 2))
+
+
+def test_board_collects_power_pellet() -> None:
+    board = Board(
+        [
+            "#####",
+            "#o..#",
+            "#####",
+        ]
+    )
+
+    assert board.collect_power_pellet(Position(1, 1))
+    assert not board.has_power_pellet(Position(1, 1))
+    assert not board.collect_power_pellet(Position(1, 1))
+
+
+def test_remaining_pellets_includes_power_pellets() -> None:
+    board = Board(
+        [
+            "#####",
+            "#o..#",
+            "#####",
+        ]
+    )
+
+    assert board.remaining_pellets() == 3
+
+    board.collect_power_pellet(Position(1, 1))
+
+    assert board.remaining_pellets() == 2
+    
+    
