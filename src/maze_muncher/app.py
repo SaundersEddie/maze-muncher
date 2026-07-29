@@ -14,13 +14,18 @@ TILE_SIZE = 32
 FPS = 60
 LIFE_LOST_DISPLAY_MS = 900
 GAME_OVER_MUSIC_DELAY_MS = 1200
+ENEMY_MOVE_INTERVAL_MS = 450
+
+ENEMY_MOVE_EVENT = pygame.USEREVENT + 1
 
 BACKGROUND_COLOR = (0, 0, 0)
 WALL_COLOR = (30, 70, 220)
 PELLET_COLOR = (240, 240, 200)
+POWER_PELLET_COLOR = (255, 255, 255)
 PLAYER_COLOR = (255, 220, 0)
 TEXT_COLOR = (255, 255, 255)
 ENEMY_COLOR = (255, 60, 80)
+FRIGHTENED_ENEMY_COLOR = (70, 120, 255)
 
 MENU_MUSIC = Path("assets/audio/menu_theme.mp3")
 GAME_OVER_MUSIC = Path("assets/audio/gameover_theme.mp3")
@@ -97,7 +102,7 @@ def create_game() -> Game:
     board = Board(
         [
             "###############",
-            "#.............#",
+            "#o...........o#",
             "#.###.###.###.#",
             "#.............#",
             "#.###.#.#.###.#",
@@ -105,7 +110,7 @@ def create_game() -> Game:
             "#####.#.#.#####",
             "#.............#",
             "#.###.###.###.#",
-            "#.............#",
+            "#o...........o#",
             "###############",
         ]
     )
@@ -127,9 +132,7 @@ def load_sound(path: Path) -> pygame.mixer.Sound | None:
         return None
 
 
-def play_sound(
-    sound: pygame.mixer.Sound | None,
-) -> None:
+def play_sound(sound: pygame.mixer.Sound | None) -> None:
     if sound is not None:
         sound.play()
 
@@ -163,6 +166,7 @@ def start_game_over_music() -> None:
 def draw_game(
     screen: pygame.Surface,
     game: Game,
+    hud_font: pygame.font.Font,
 ) -> None:
     screen.fill(BACKGROUND_COLOR)
 
@@ -176,12 +180,18 @@ def draw_game(
                 pygame.draw.rect(
                     screen,
                     WALL_COLOR,
-                    pygame.Rect(
-                        x,
-                        y,
-                        TILE_SIZE,
-                        TILE_SIZE,
+                    pygame.Rect(x, y, TILE_SIZE, TILE_SIZE),
+                )
+
+            elif game.board.has_power_pellet(position):
+                pygame.draw.circle(
+                    screen,
+                    POWER_PELLET_COLOR,
+                    (
+                        x + TILE_SIZE // 2,
+                        y + TILE_SIZE // 2,
                     ),
+                    7,
                 )
 
             elif game.board.has_pellet(position):
@@ -195,12 +205,8 @@ def draw_game(
                     3,
                 )
 
-    player_x = (
-        game.player.position.column * TILE_SIZE
-    )
-    player_y = (
-        game.player.position.row * TILE_SIZE
-    )
+    player_x = game.player.position.column * TILE_SIZE
+    player_y = game.player.position.row * TILE_SIZE
 
     pygame.draw.circle(
         screen,
@@ -213,21 +219,65 @@ def draw_game(
     )
 
     if game.enemy is not None:
-        enemy_x = (
-            game.enemy.position.column * TILE_SIZE
-        )
-        enemy_y = (
-            game.enemy.position.row * TILE_SIZE
+        enemy_x = game.enemy.position.column * TILE_SIZE
+        enemy_y = game.enemy.position.row * TILE_SIZE
+
+        enemy_color = (
+            FRIGHTENED_ENEMY_COLOR
+            if game.is_powered_up
+            else ENEMY_COLOR
         )
 
         pygame.draw.circle(
             screen,
-            ENEMY_COLOR,
+            enemy_color,
             (
                 enemy_x + TILE_SIZE // 2,
                 enemy_y + TILE_SIZE // 2,
             ),
             TILE_SIZE // 2 - 4,
+        )
+
+    score_text = hud_font.render(
+        f"SCORE {game.score}",
+        True,
+        TEXT_COLOR,
+    )
+    lives_text = hud_font.render(
+        f"LIVES {game.lives}",
+        True,
+        TEXT_COLOR,
+    )
+
+    screen.blit(
+        score_text,
+        score_text.get_rect(midleft=(8, TILE_SIZE // 2)),
+    )
+    screen.blit(
+        lives_text,
+        lives_text.get_rect(
+            midright=(
+                screen.get_width() - 8,
+                TILE_SIZE // 2,
+            )
+        ),
+    )
+
+    if game.is_powered_up:
+        power_text = hud_font.render(
+            f"POWER {game.powered_moves_remaining}",
+            True,
+            POWER_PELLET_COLOR,
+        )
+
+        screen.blit(
+            power_text,
+            power_text.get_rect(
+                center=(
+                    screen.get_width() // 2,
+                    TILE_SIZE // 2,
+                )
+            ),
         )
 
 
@@ -258,21 +308,15 @@ def draw_menu(
 
     screen.blit(
         title,
-        title.get_rect(
-            center=(center_x, 100)
-        ),
+        title.get_rect(center=(center_x, 100)),
     )
     screen.blit(
         start,
-        start.get_rect(
-            center=(center_x, 190)
-        ),
+        start.get_rect(center=(center_x, 190)),
     )
     screen.blit(
         quit_text,
-        quit_text.get_rect(
-            center=(center_x, 230)
-        ),
+        quit_text.get_rect(center=(center_x, 230)),
     )
 
 
@@ -281,8 +325,9 @@ def draw_life_lost_screen(
     game: Game,
     title_font: pygame.font.Font,
     menu_font: pygame.font.Font,
+    hud_font: pygame.font.Font,
 ) -> None:
-    draw_game(screen, game)
+    draw_game(screen, game, hud_font)
 
     overlay = pygame.Surface(
         screen.get_size(),
@@ -360,27 +405,19 @@ def draw_end_screen(
 
     screen.blit(
         title,
-        title.get_rect(
-            center=(center_x, 90)
-        ),
+        title.get_rect(center=(center_x, 90)),
     )
     screen.blit(
         score,
-        score.get_rect(
-            center=(center_x, 155)
-        ),
+        score.get_rect(center=(center_x, 155)),
     )
     screen.blit(
         replay,
-        replay.get_rect(
-            center=(center_x, 215)
-        ),
+        replay.get_rect(center=(center_x, 215)),
     )
     screen.blit(
         menu,
-        menu.get_rect(
-            center=(center_x, 255)
-        ),
+        menu.get_rect(center=(center_x, 255)),
     )
 
 
@@ -430,27 +467,19 @@ def main() -> None:
 
     title_font = pygame.font.Font(None, 48)
     menu_font = pygame.font.Font(None, 26)
+    hud_font = pygame.font.Font(None, 22)
 
-    enemy_move_sound = load_sound(
-        ENEMY_MOVE_SFX
-    )
-    game_over_sound = load_sound(
-        GAME_OVER_SFX
-    )
-    life_lost_sound = load_sound(
-        LIFE_LOST_SFX
-    )
-    meanie_spawn_sound = load_sound(
-        MEANIE_SPAWN_SFX
-    )
-    pickup_sound = load_sound(
-        PICKUP_SFX
-    )
-    player_start_sound = load_sound(
-        PLAYER_START_SFX
-    )
-    victory_sound = load_sound(
-        VICTORY_SFX
+    enemy_move_sound = load_sound(ENEMY_MOVE_SFX)
+    game_over_sound = load_sound(GAME_OVER_SFX)
+    life_lost_sound = load_sound(LIFE_LOST_SFX)
+    meanie_spawn_sound = load_sound(MEANIE_SPAWN_SFX)
+    pickup_sound = load_sound(PICKUP_SFX)
+    player_start_sound = load_sound(PLAYER_START_SFX)
+    victory_sound = load_sound(VICTORY_SFX)
+
+    pygame.time.set_timer(
+        ENEMY_MOVE_EVENT,
+        ENEMY_MOVE_INTERVAL_MS,
     )
 
     clock = pygame.time.Clock()
@@ -470,91 +499,33 @@ def main() -> None:
                 running = False
                 continue
 
-            if event.type != pygame.KEYDOWN:
-                continue
-
-            if app_state is AppState.MENU:
-                action = menu_action_for_key(
-                    event.key
-                )
-
-                if action is MenuAction.START:
-                    stop_music()
-
-                    game = create_game()
-                    app_state = AppState.PLAYING
-
-                    play_sound(
-                        player_start_sound
-                    )
-                    play_sound(
-                        meanie_spawn_sound
-                    )
-
-                elif action is MenuAction.QUIT:
-                    running = False
-
-            elif app_state is AppState.PLAYING:
-                direction = direction_for_key(
-                    event.key
-                )
-
-                if direction is None:
+            if event.type == ENEMY_MOVE_EVENT:
+                if app_state is not AppState.PLAYING:
                     continue
 
                 previous_score = game.score
                 previous_lives = game.lives
-                previous_enemy_position = (
-                    game.enemy.position
-                    if game.enemy is not None
-                    else None
-                )
 
-                moved = game.move_player(
-                    direction
-                )
+                moved = game.move_enemy()
 
                 if not moved:
                     continue
 
-                enemy_moved = (
-                    game.enemy is not None
-                    and previous_enemy_position
-                    is not None
-                    and game.enemy.position
-                    != previous_enemy_position
-                )
-
-                if (
-                    game.state
-                    is GameState.GAME_OVER
-                ):
+                if game.state is GameState.GAME_OVER:
                     stop_music()
                     play_sound(game_over_sound)
 
-                    app_state = (
-                        AppState.GAME_OVER
-                    )
-
+                    app_state = AppState.GAME_OVER
                     game_over_music_starts_at = (
                         pygame.time.get_ticks()
                         + GAME_OVER_MUSIC_DELAY_MS
                     )
-                    game_over_music_started = (
-                        False
-                    )
+                    game_over_music_started = False
 
-                elif (
-                    game.lives
-                    < previous_lives
-                ):
-                    play_sound(
-                        life_lost_sound
-                    )
+                elif game.lives < previous_lives:
+                    play_sound(life_lost_sound)
 
-                    app_state = (
-                        AppState.LIFE_LOST
-                    )
+                    app_state = AppState.LIFE_LOST
                     life_lost_until = (
                         pygame.time.get_ticks()
                         + LIFE_LOST_DISPLAY_MS
@@ -562,58 +533,90 @@ def main() -> None:
 
                 else:
                     if game.score > previous_score:
-                        play_sound(
-                            pickup_sound
-                        )
+                        play_sound(pickup_sound)
+                    else:
+                        play_sound(enemy_move_sound)
 
-                    if enemy_moved:
-                        play_sound(
-                            enemy_move_sound
-                        )
+                continue
 
-                    if (
-                        game.state
-                        is GameState.WON
-                    ):
+            if event.type != pygame.KEYDOWN:
+                continue
+
+            if app_state is AppState.MENU:
+                action = menu_action_for_key(event.key)
+
+                if action is MenuAction.START:
+                    stop_music()
+
+                    game = create_game()
+                    app_state = AppState.PLAYING
+
+                    play_sound(player_start_sound)
+                    play_sound(meanie_spawn_sound)
+
+                elif action is MenuAction.QUIT:
+                    running = False
+
+            elif app_state is AppState.PLAYING:
+                direction = direction_for_key(event.key)
+
+                if direction is None:
+                    continue
+
+                previous_score = game.score
+                previous_lives = game.lives
+
+                moved = game.move_player(direction)
+
+                if not moved:
+                    continue
+
+                if game.state is GameState.GAME_OVER:
+                    stop_music()
+                    play_sound(game_over_sound)
+
+                    app_state = AppState.GAME_OVER
+                    game_over_music_starts_at = (
+                        pygame.time.get_ticks()
+                        + GAME_OVER_MUSIC_DELAY_MS
+                    )
+                    game_over_music_started = False
+
+                elif game.lives < previous_lives:
+                    play_sound(life_lost_sound)
+
+                    app_state = AppState.LIFE_LOST
+                    life_lost_until = (
+                        pygame.time.get_ticks()
+                        + LIFE_LOST_DISPLAY_MS
+                    )
+
+                else:
+                    if game.score > previous_score:
+                        play_sound(pickup_sound)
+
+                    if game.state is GameState.WON:
                         stop_music()
-                        play_sound(
-                            victory_sound
-                        )
-                        app_state = (
-                            AppState.WON
-                        )
+                        play_sound(victory_sound)
+                        app_state = AppState.WON
 
             elif app_state in (
                 AppState.WON,
                 AppState.GAME_OVER,
             ):
-                action = (
-                    end_screen_action_for_key(
-                        event.key
-                    )
-                )
+                action = end_screen_action_for_key(event.key)
 
-                if (
-                    action
-                    is EndScreenAction.REPLAY
-                ):
+                if action is EndScreenAction.REPLAY:
                     stop_music()
 
                     game = create_game()
                     app_state = AppState.PLAYING
                     game_over_music_started = False
 
-                    play_sound(
-                        player_start_sound
-                    )
-                    play_sound(
-                        meanie_spawn_sound
-                    )
+                    play_sound(player_start_sound)
+                    play_sound(meanie_spawn_sound)
 
-                elif (
-                    action
-                    is EndScreenAction.MENU
-                ):
+                elif action is EndScreenAction.MENU:
                     stop_music()
 
                     game = create_game()
@@ -626,16 +629,14 @@ def main() -> None:
 
         if (
             app_state is AppState.LIFE_LOST
-            and current_time
-            >= life_lost_until
+            and current_time >= life_lost_until
         ):
             app_state = AppState.PLAYING
 
         if (
             app_state is AppState.GAME_OVER
             and not game_over_music_started
-            and current_time
-            >= game_over_music_starts_at
+            and current_time >= game_over_music_starts_at
         ):
             start_game_over_music()
             game_over_music_started = True
@@ -646,14 +647,13 @@ def main() -> None:
                 title_font,
                 menu_font,
             )
-            pygame.display.set_caption(
-                "Maze Muncher"
-            )
+            pygame.display.set_caption("Maze Muncher")
 
         elif app_state is AppState.PLAYING:
             draw_game(
                 screen,
                 game,
+                hud_font,
             )
             pygame.display.set_caption(
                 f"Maze Muncher "
@@ -667,6 +667,7 @@ def main() -> None:
                 game,
                 title_font,
                 menu_font,
+                hud_font,
             )
             pygame.display.set_caption(
                 f"Maze Muncher "
@@ -703,6 +704,7 @@ def main() -> None:
         pygame.display.flip()
         clock.tick(FPS)
 
+    pygame.time.set_timer(ENEMY_MOVE_EVENT, 0)
     stop_music()
     pygame.quit()
 

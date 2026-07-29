@@ -81,18 +81,31 @@ class Game:
             self.state = GameState.WON
             return True
 
-        if self.enemy is not None:
-            self.enemy.move(self.board, self.random_source)
-
-            if self._has_collision():
-                self._resolve_collision()
-
         if (
             not collected_power_pellet
             and self.is_powered_up
-            and self.state is GameState.PLAYING
         ):
             self.powered_moves_remaining -= 1
+
+        return True
+
+    def move_enemy(self) -> bool:
+        if self.state is not GameState.PLAYING:
+            return False
+
+        if self.enemy is None:
+            return False
+
+        moved = self.enemy.move(
+            self.board,
+            self.random_source,
+        )
+
+        if not moved:
+            return False
+
+        if self._has_collision():
+            self._resolve_collision()
 
         return True
 
@@ -116,7 +129,8 @@ class Game:
     def _has_collision(self) -> bool:
         return (
             self.enemy is not None
-            and self.player.position == self.enemy.position
+            and self.player.position
+            == self.enemy.position
         )
 
     def _resolve_collision(self) -> None:
@@ -133,6 +147,7 @@ class Game:
             and self.enemy_start is not None
         ):
             self.enemy.position = self.enemy_start
+            self.enemy.last_direction = None
 
     def _lose_life(self) -> None:
         self.lives -= 1
@@ -149,4 +164,5 @@ class Game:
             and self.enemy_start is not None
         ):
             self.enemy.position = self.enemy_start
+            self.enemy.last_direction = None
             
