@@ -14,7 +14,8 @@ TILE_SIZE = 32
 FPS = 60
 LIFE_LOST_DISPLAY_MS = 900
 GAME_OVER_MUSIC_DELAY_MS = 1200
-ENEMY_MOVE_INTERVAL_MS = 450
+# ENEMY_MOVE_INTERVAL_MS = 450
+ENEMY_MOVE_INTERVAL_MS = 400
 
 ENEMY_MOVE_EVENT = pygame.USEREVENT + 1
 
@@ -37,6 +38,9 @@ MEANIE_SPAWN_SFX = Path("assets/audio/sfx/meanie_spawn.mp3")
 PICKUP_SFX = Path("assets/audio/sfx/pickup_sound.mp3")
 PLAYER_START_SFX = Path("assets/audio/sfx/player_start.mp3")
 VICTORY_SFX = Path("assets/audio/sfx/victory_sound.mp3")
+POWER_PELLET_SFX = Path("assets/audio/sfx/power_pellet.mp3")
+ENEMY_EATEN_SFX = Path("assets/audio/sfx/enemy_eaten.mp3")
+
 
 
 class AppState(Enum):
@@ -118,7 +122,10 @@ def create_game() -> Game:
     return Game(
         board=board,
         player=Player(Position(1, 1)),
-        enemy=Enemy(Position(7, 7)),
+        enemies=[
+            Enemy(Position(7, 7)),
+            Enemy(Position(3, 13)),
+        ],
     )
 
 
@@ -218,15 +225,15 @@ def draw_game(
         TILE_SIZE // 2 - 3,
     )
 
-    if game.enemy is not None:
-        enemy_x = game.enemy.position.column * TILE_SIZE
-        enemy_y = game.enemy.position.row * TILE_SIZE
+    enemy_color = (
+        FRIGHTENED_ENEMY_COLOR
+        if game.is_powered_up
+        else ENEMY_COLOR
+    )
 
-        enemy_color = (
-            FRIGHTENED_ENEMY_COLOR
-            if game.is_powered_up
-            else ENEMY_COLOR
-        )
+    for enemy in game.enemies:
+        enemy_x = enemy.position.column * TILE_SIZE
+        enemy_y = enemy.position.row * TILE_SIZE
 
         pygame.draw.circle(
             screen,
@@ -476,6 +483,8 @@ def main() -> None:
     pickup_sound = load_sound(PICKUP_SFX)
     player_start_sound = load_sound(PLAYER_START_SFX)
     victory_sound = load_sound(VICTORY_SFX)
+    power_pellet_sound = load_sound(POWER_PELLET_SFX)
+    enemy_eaten_sound = load_sound(ENEMY_EATEN_SFX)
 
     pygame.time.set_timer(
         ENEMY_MOVE_EVENT,
@@ -532,8 +541,10 @@ def main() -> None:
                     )
 
                 else:
-                    if game.score > previous_score:
-                        play_sound(pickup_sound)
+                    score_gained = game.score - previous_score
+
+                    if score_gained >= Game.ENEMY_SCORE:
+                        play_sound(enemy_eaten_sound)
                     else:
                         play_sound(enemy_move_sound)
 
@@ -592,7 +603,13 @@ def main() -> None:
                     )
 
                 else:
-                    if game.score > previous_score:
+                    score_gained = game.score - previous_score
+
+                    if score_gained >= Game.ENEMY_SCORE:
+                        play_sound(enemy_eaten_sound)
+                    elif score_gained == Game.POWER_PELLET_SCORE:
+                        play_sound(power_pellet_sound)
+                    elif score_gained > 0:
                         play_sound(pickup_sound)
 
                     if game.state is GameState.WON:
