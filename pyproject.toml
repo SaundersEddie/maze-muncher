@@ -1,0 +1,22 @@
+[project]
+name = "maze-muncher"
+version = "0.1.0"
+description = "A small Pac-Man-inspired game built with Pygame and tested with pytest."
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "pygame-ce",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+]
