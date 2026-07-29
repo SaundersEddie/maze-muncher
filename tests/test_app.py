@@ -3,9 +3,12 @@ import pytest
 
 from maze_muncher.app import (
     MenuAction,
+    WinAction,
     direction_for_key,
     menu_action_for_key,
+    win_action_for_key,
 )
+
 from maze_muncher.movement import Direction
 
 
@@ -50,3 +53,22 @@ def test_escape_quits_from_menu() -> None:
 
 def test_unknown_menu_key_has_no_action() -> None:
     assert menu_action_for_key(pygame.K_a) is None
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        pygame.K_RETURN,
+        pygame.K_SPACE,
+    ],
+)
+def test_win_screen_replay_keys(key: int) -> None:
+    assert win_action_for_key(key) is WinAction.REPLAY
+
+
+def test_escape_returns_to_menu_from_win_screen() -> None:
+    assert win_action_for_key(pygame.K_ESCAPE) is WinAction.MENU
+
+
+def test_unknown_win_screen_key_has_no_action() -> None:
+    assert win_action_for_key(pygame.K_a) is None

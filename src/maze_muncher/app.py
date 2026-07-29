@@ -4,6 +4,7 @@ from pathlib import Path
 import pygame
 
 from maze_muncher.board import Board, Position
+from maze_muncher.enemy import Enemy
 from maze_muncher.game import Game, GameState
 from maze_muncher.movement import Direction
 from maze_muncher.player import Player
@@ -11,12 +12,14 @@ from maze_muncher.player import Player
 
 TILE_SIZE = 32
 FPS = 60
+LIFE_LOST_DISPLAY_MS = 900
 
 BACKGROUND_COLOR = (0, 0, 0)
 WALL_COLOR = (30, 70, 220)
 PELLET_COLOR = (240, 240, 200)
 PLAYER_COLOR = (255, 220, 0)
 TEXT_COLOR = (255, 255, 255)
+ENEMY_COLOR = (255, 60, 80)
 
 MENU_MUSIC = Path("assets/audio/menu_theme.mp3")
 
@@ -24,12 +27,21 @@ MENU_MUSIC = Path("assets/audio/menu_theme.mp3")
 class AppState(Enum):
     MENU = auto()
     PLAYING = auto()
+    LIFE_LOST = auto()
+    WON = auto()
+    GAME_OVER = auto()
 
 
 class MenuAction(Enum):
     START = auto()
     QUIT = auto()
 
+
+class EndScreenAction(Enum):
+    REPLAY = auto()
+    MENU = auto()
+
+WinAction = EndScreenAction
 
 def direction_for_key(key: int) -> Direction | None:
     return {
@@ -54,6 +66,17 @@ def menu_action_for_key(key: int) -> MenuAction | None:
     return None
 
 
+def end_screen_action_for_key(key: int) -> EndScreenAction | None:
+    if key in (pygame.K_RETURN, pygame.K_SPACE):
+        return EndScreenAction.REPLAY
+
+    if key == pygame.K_ESCAPE:
+        return EndScreenAction.MENU
+
+    return None
+
+win_action_for_key = end_screen_action_for_key
+
 def create_game() -> Game:
     board = Board(
         [
@@ -74,6 +97,7 @@ def create_game() -> Game:
     return Game(
         board=board,
         player=Player(Position(1, 1)),
+        enemy=Enemy(Position(7, 7)),
     )
 
 
@@ -92,6 +116,7 @@ def draw_game(screen: pygame.Surface, game: Game) -> None:
                     WALL_COLOR,
                     pygame.Rect(x, y, TILE_SIZE, TILE_SIZE),
                 )
+
             elif game.board.has_pellet(position):
                 pygame.draw.circle(
                     screen,
@@ -116,6 +141,20 @@ def draw_game(screen: pygame.Surface, game: Game) -> None:
         TILE_SIZE // 2 - 3,
     )
 
+    if game.enemy is not None:
+        enemy_x = game.enemy.position.column * TILE_SIZE
+        enemy_y = game.enemy.position.row * TILE_SIZE
+
+        pygame.draw.circle(
+            screen,
+            ENEMY_COLOR,
+            (
+                enemy_x + TILE_SIZE // 2,
+                enemy_y + TILE_SIZE // 2,
+            ),
+            TILE_SIZE // 2 - 4,
+        )
+
 
 def draw_menu(
     screen: pygame.Surface,
@@ -124,17 +163,162 @@ def draw_menu(
 ) -> None:
     screen.fill(BACKGROUND_COLOR)
 
-    title = title_font.render("MAZE MUNCHER", True, PLAYER_COLOR)
-    start = menu_font.render("ENTER OR SPACE TO START", True, TEXT_COLOR)
-    quit_text = menu_font.render("ESC TO QUIT", True, TEXT_COLOR)
+    title = title_font.render(
+        "MAZE MUNCHER",
+        True,
+        PLAYER_COLOR,
+    )
+    start = menu_font.render(
+        "ENTER OR SPACE TO START",
+        True,
+        TEXT_COLOR,
+    )
+    quit_text = menu_font.render(
+        "ESC TO QUIT",
+        True,
+        TEXT_COLOR,
+    )
 
-    title_rect = title.get_rect(center=(screen.get_width() // 2, 100))
-    start_rect = start.get_rect(center=(screen.get_width() // 2, 190))
-    quit_rect = quit_text.get_rect(center=(screen.get_width() // 2, 230))
+    center_x = screen.get_width() // 2
 
-    screen.blit(title, title_rect)
-    screen.blit(start, start_rect)
-    screen.blit(quit_text, quit_rect)
+    screen.blit(
+        title,
+        title.get_rect(center=(center_x, 100)),
+    )
+    screen.blit(
+        start,
+        start.get_rect(center=(center_x, 190)),
+    )
+    screen.blit(
+        quit_text,
+        quit_text.get_rect(center=(center_x, 230)),
+    )
+
+
+def draw_life_lost_screen(
+    screen: pygame.Surface,
+    game: Game,
+    title_font: pygame.font.Font,
+    menu_font: pygame.font.Font,
+) -> None:
+    draw_game(screen, game)
+
+    overlay = pygame.Surface(
+        screen.get_size(),
+        pygame.SRCALPHA,
+    )
+    overlay.fill((0, 0, 0, 180))
+    screen.blit(overlay, (0, 0))
+
+    title = title_font.render(
+        "LIFE LOST!",
+        True,
+        ENEMY_COLOR,
+    )
+    lives = menu_font.render(
+        f"LIVES REMAINING: {game.lives}",
+        True,
+        TEXT_COLOR,
+    )
+
+    center_x = screen.get_width() // 2
+    center_y = screen.get_height() // 2
+
+    screen.blit(
+        title,
+        title.get_rect(
+            center=(center_x, center_y - 25)
+        ),
+    )
+    screen.blit(
+        lives,
+        lives.get_rect(
+            center=(center_x, center_y + 25)
+        ),
+    )
+
+
+def draw_win_screen(
+    screen: pygame.Surface,
+    game: Game,
+    title_font: pygame.font.Font,
+    menu_font: pygame.font.Font,
+) -> None:
+    draw_end_screen(
+        screen=screen,
+        game=game,
+        title_font=title_font,
+        menu_font=menu_font,
+        title_text="YOU WON!",
+        title_color=PLAYER_COLOR,
+    )
+
+
+def draw_game_over_screen(
+    screen: pygame.Surface,
+    game: Game,
+    title_font: pygame.font.Font,
+    menu_font: pygame.font.Font,
+) -> None:
+    draw_end_screen(
+        screen=screen,
+        game=game,
+        title_font=title_font,
+        menu_font=menu_font,
+        title_text="GAME OVER",
+        title_color=ENEMY_COLOR,
+    )
+
+
+def draw_end_screen(
+    screen: pygame.Surface,
+    game: Game,
+    title_font: pygame.font.Font,
+    menu_font: pygame.font.Font,
+    title_text: str,
+    title_color: tuple[int, int, int],
+) -> None:
+    screen.fill(BACKGROUND_COLOR)
+
+    title = title_font.render(
+        title_text,
+        True,
+        title_color,
+    )
+    score = menu_font.render(
+        f"FINAL SCORE: {game.score}",
+        True,
+        TEXT_COLOR,
+    )
+    replay = menu_font.render(
+        "ENTER OR SPACE TO PLAY AGAIN",
+        True,
+        TEXT_COLOR,
+    )
+    menu = menu_font.render(
+        "ESC TO RETURN TO MENU",
+        True,
+        TEXT_COLOR,
+    )
+
+    center_x = screen.get_width() // 2
+
+    screen.blit(
+        title,
+        title.get_rect(center=(center_x, 90)),
+    )
+    screen.blit(
+        score,
+        score.get_rect(center=(center_x, 155)),
+    )
+    screen.blit(
+        replay,
+        replay.get_rect(center=(center_x, 215)),
+    )
+    screen.blit(
+        menu,
+        menu.get_rect(center=(center_x, 255)),
+    )
 
 
 def start_menu_music() -> None:
@@ -160,13 +344,12 @@ def main() -> None:
         )
     )
 
-    pygame.display.set_caption("Maze Muncher")
-
     title_font = pygame.font.Font(None, 48)
     menu_font = pygame.font.Font(None, 26)
 
     clock = pygame.time.Clock()
     app_state = AppState.MENU
+    life_lost_until = 0
     running = True
 
     start_menu_music()
@@ -175,6 +358,7 @@ def main() -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+                continue
 
             if event.type != pygame.KEYDOWN:
                 continue
@@ -184,6 +368,7 @@ def main() -> None:
 
                 if action is MenuAction.START:
                     pygame.mixer.music.stop()
+                    game = create_game()
                     app_state = AppState.PLAYING
 
                 elif action is MenuAction.QUIT:
@@ -192,22 +377,97 @@ def main() -> None:
             elif app_state is AppState.PLAYING:
                 direction = direction_for_key(event.key)
 
-                if direction is not None:
-                    game.move_player(direction)
+                if direction is None:
+                    continue
+
+                previous_lives = game.lives
+                game.move_player(direction)
+
+                if game.state is GameState.GAME_OVER:
+                    app_state = AppState.GAME_OVER
+
+                elif game.lives < previous_lives:
+                    app_state = AppState.LIFE_LOST
+                    life_lost_until = (
+                        pygame.time.get_ticks()
+                        + LIFE_LOST_DISPLAY_MS
+                    )
+
+                elif game.state is GameState.WON:
+                    app_state = AppState.WON
+
+            elif app_state in (
+                AppState.WON,
+                AppState.GAME_OVER,
+            ):
+                action = end_screen_action_for_key(event.key)
+
+                if action is EndScreenAction.REPLAY:
+                    pygame.mixer.music.stop()
+                    game = create_game()
+                    app_state = AppState.PLAYING
+
+                elif action is EndScreenAction.MENU:
+                    game = create_game()
+                    app_state = AppState.MENU
+                    start_menu_music()
+
+        if (
+            app_state is AppState.LIFE_LOST
+            and pygame.time.get_ticks() >= life_lost_until
+        ):
+            app_state = AppState.PLAYING
 
         if app_state is AppState.MENU:
-            draw_menu(screen, title_font, menu_font)
+            draw_menu(
+                screen,
+                title_font,
+                menu_font,
+            )
             pygame.display.set_caption("Maze Muncher")
 
-        else:
+        elif app_state is AppState.PLAYING:
             draw_game(screen, game)
+            pygame.display.set_caption(
+                f"Maze Muncher | Score: {game.score} "
+                f"| Lives: {game.lives}"
+            )
 
-            caption = f"Maze Muncher | Score: {game.score}"
+        elif app_state is AppState.LIFE_LOST:
+            draw_life_lost_screen(
+                screen,
+                game,
+                title_font,
+                menu_font,
+            )
+            pygame.display.set_caption(
+                f"Maze Muncher | Life Lost "
+                f"| Lives: {game.lives}"
+            )
 
-            if game.state is GameState.WON:
-                caption += " | YOU WON"
+        elif app_state is AppState.WON:
+            draw_win_screen(
+                screen,
+                game,
+                title_font,
+                menu_font,
+            )
+            pygame.display.set_caption(
+                f"Maze Muncher | You Won "
+                f"| Final Score: {game.score}"
+            )
 
-            pygame.display.set_caption(caption)
+        elif app_state is AppState.GAME_OVER:
+            draw_game_over_screen(
+                screen,
+                game,
+                title_font,
+                menu_font,
+            )
+            pygame.display.set_caption(
+                f"Maze Muncher | Game Over "
+                f"| Final Score: {game.score}"
+            )
 
         pygame.display.flip()
         clock.tick(FPS)
@@ -217,4 +477,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
+    
+    
