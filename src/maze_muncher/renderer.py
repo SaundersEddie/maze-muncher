@@ -249,25 +249,52 @@ def _draw_hud(
         True,
         TEXT_COLOR,
     )
-    lives_text = hud_font.render(
-        f"LIVES {game.lives}",
-        True,
-        TEXT_COLOR,
-    )
+    life_radius = 7
+    life_spacing = 20
+    life_y = TILE_SIZE // 2
+
+    for life_index in range(game.lives):
+        life_x = (
+                screen.get_width()
+                - 12
+                - (life_index * life_spacing)
+        )
+
+        pygame.draw.circle(
+            screen,
+            PLAYER_COLOR,
+            (life_x, life_y),
+            life_radius,
+        )
+
+        pygame.draw.polygon(
+            screen,
+            WALL_COLOR,
+            [
+                (life_x, life_y),
+                (life_x + life_radius, life_y - 4),
+                (life_x + life_radius, life_y + 4),
+            ],
+        )
+    # lives_text = hud_font.render(
+    #     f"LIVES {game.lives}",
+    #     True,
+    #     TEXT_COLOR,
+    # )
 
     screen.blit(
         score_text,
         score_text.get_rect(midleft=(8, TILE_SIZE // 2)),
     )
-    screen.blit(
-        lives_text,
-        lives_text.get_rect(
-            midright=(
-                screen.get_width() - 8,
-                TILE_SIZE // 2,
-            )
-        ),
-    )
+    # screen.blit(
+    #     lives_text,
+    #     lives_text.get_rect(
+    #         midright=(
+    #             screen.get_width() - 8,
+    #             TILE_SIZE // 2,
+    #         )
+    #     ),
+    # )
 
     if game.is_powered_up:
         power_text = hud_font.render(
