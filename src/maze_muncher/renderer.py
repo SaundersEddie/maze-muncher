@@ -2,6 +2,7 @@ import pygame
 
 from maze_muncher.board import Position
 from maze_muncher.game import Game
+from maze_muncher.movement import Direction
 
 
 TILE_SIZE = 32
@@ -16,6 +17,10 @@ ENEMY_COLOR = (255, 60, 80)
 FRIGHTENED_ENEMY_COLOR = (70, 120, 255)
 EYE_WHITE_COLOR = (255, 255, 255)
 EYE_PUPIL_COLOR = (20, 40, 120)
+ENEMY_COLORS = [
+    (255, 60, 80),
+    (255, 150, 60),
+]
 
 
 def draw_game(
@@ -69,17 +74,50 @@ def _draw_player(
     screen: pygame.Surface,
     game: Game,
 ) -> None:
-    player_x = game.player.position.column * TILE_SIZE
-    player_y = game.player.position.row * TILE_SIZE
+    center_x = (
+        game.player.position.column * TILE_SIZE
+        + TILE_SIZE // 2
+    )
+    center_y = (
+        game.player.position.row * TILE_SIZE
+        + TILE_SIZE // 2
+    )
+    radius = TILE_SIZE // 2 - 3
 
     pygame.draw.circle(
         screen,
         PLAYER_COLOR,
-        (
-            player_x + TILE_SIZE // 2,
-            player_y + TILE_SIZE // 2,
-        ),
-        TILE_SIZE // 2 - 3,
+        (center_x, center_y),
+        radius,
+    )
+
+    mouth_points = {
+        Direction.RIGHT: [
+            (center_x, center_y),
+            (center_x + radius, center_y - 7),
+            (center_x + radius, center_y + 7),
+        ],
+        Direction.LEFT: [
+            (center_x, center_y),
+            (center_x - radius, center_y - 7),
+            (center_x - radius, center_y + 7),
+        ],
+        Direction.UP: [
+            (center_x, center_y),
+            (center_x - 7, center_y - radius),
+            (center_x + 7, center_y - radius),
+        ],
+        Direction.DOWN: [
+            (center_x, center_y),
+            (center_x - 7, center_y + radius),
+            (center_x + 7, center_y + radius),
+        ],
+    }
+
+    pygame.draw.polygon(
+        screen,
+        BACKGROUND_COLOR,
+        mouth_points[game.player.last_direction],
     )
 
 
@@ -87,15 +125,21 @@ def _draw_enemies(
     screen: pygame.Surface,
     game: Game,
 ) -> None:
-    enemy_color = (
-        FRIGHTENED_ENEMY_COLOR
-        if game.is_powered_up
-        else ENEMY_COLOR
-    )
+    for index, enemy in enumerate(game.enemies):
+        enemy_color = (
+            FRIGHTENED_ENEMY_COLOR
+            if game.is_powered_up
+            else ENEMY_COLORS[
+                index % len(ENEMY_COLORS)
+            ]
+        )
 
-    for enemy in game.enemies:
-        enemy_x = enemy.position.column * TILE_SIZE
-        enemy_y = enemy.position.row * TILE_SIZE
+        enemy_x = (
+            enemy.position.column * TILE_SIZE
+        )
+        enemy_y = (
+            enemy.position.row * TILE_SIZE
+        )
 
         _draw_enemy_ghost(
             screen,
@@ -301,7 +345,7 @@ def draw_life_lost_screen(
     title = title_font.render(
         "LIFE LOST!",
         True,
-        ENEMY_COLOR,
+        ENEMY_COLORS[0],
     )
     lives = menu_font.render(
         f"LIVES REMAINING: {game.lives}",
@@ -411,6 +455,6 @@ def draw_game_over_screen(
         title_font=title_font,
         menu_font=menu_font,
         title_text="GAME OVER",
-        title_color=ENEMY_COLOR,
+        title_color=ENEMY_COLORS[0],
     )
     
