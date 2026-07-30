@@ -1,5 +1,9 @@
 # Maze Muncher
 
+![Tests](https://img.shields.io/badge/tests-72%20passed-brightgreen)
+![Expected Failure](https://img.shields.io/badge/xfail-1-yellow)
+![Core Logic Coverage](https://img.shields.io/badge/core%20logic-92--100%25-brightgreen)
+
 Maze Muncher is a small maze-based arcade game built in Python using Pygame Community Edition.
 
 The project began as a quick-fire coding exercise: build something playable, keep the scope under control, test the important logic, and actually finish the thing instead of allowing it to become another glorious monument to unfinished ambition.
@@ -12,7 +16,7 @@ Maze Muncher is now fully playable.
 
 The player can navigate the maze, collect pellets, activate power mode, eat frightened meanies, lose lives, pause the game, win by clearing the board, or reach game over by making several questionable navigational decisions.
 
-The main gameplay systems are working and covered by automated tests. The remaining work is primarily balancing, options, additional polish, documentation, and final release preparation.
+The main gameplay systems are complete, tested, and working as intended. The project has passed its full playthrough, test, and coverage checks and is now considered functionally complete.
 
 ## Features
 
@@ -43,6 +47,10 @@ The main gameplay systems are working and covered by automated tests. The remain
 - Music and sound effects
 - Separate game logic, rendering, and audio modules
 - Automated tests for the core game rules
+- Separate music and sound-effect volume controls
+- Live volume display on the pause screen
+- Real-time mute toggle
+- Player lives displayed as Muncher icons
 
 ## Controls
 
@@ -61,6 +69,7 @@ The main gameplay systems are working and covered by automated tests. The remain
 | `W`, `A`, `S`, `D` | Move |
 | `P` | Pause or resume |
 | `Escape` | Pause or resume |
+| `M` | Mute or restore all audio |
 
 ### Win and Game Over Screens
 
@@ -69,7 +78,16 @@ The main gameplay systems are working and covered by automated tests. The remain
 | `Enter` or `Space` | Play again |
 | `Escape` | Return to the main menu |
 
-## Scoring
+### Pause Screen
+
+| Key | Action |
+| --- | --- |
+| Up or Down | Select Music or SFX volume |
+| Left or Right | Adjust the selected volume |
+| `P` or `Escape` | Resume the game |
+| `M` | Mute or restore all audio |
+
+### Scoring
 
 | Action | Points |
 | --- | ---: |
@@ -218,8 +236,26 @@ python -m pytest
 Run the tests with coverage:
 
 ```bash
-python -m pytest --cov=maze_muncher
+python -m pytest --cov=maze_muncher --cov-report=term-missing
 ```
+
+## Test Status
+
+- 72 tests passing
+- 1 expected failure
+- Full gameplay playthrough completed successfully
+- Core gameplay modules covered between 92% and 100%
+- Overall coverage is 52% because the Pygame event loop, rendering, and audio playback are intentionally not heavily unit tested
+
+### Coverage Highlights
+
+| Module | Coverage |
+| --- | ---: |
+| Game logic | 98% |
+| Board | 92% |
+| Enemy behavior | 93% |
+| Movement | 100% |
+| Player | 100% |
 
 ## Testing Philosophy
 
@@ -263,26 +299,13 @@ Maze Muncher includes:
 - Victory sound
 - Game-over sound
 
-Audio volume controls and final sound balancing remain planned work.
+Music and sound-effect volumes can be adjusted independently from the pause screen. Pressing `M` toggles all audio without losing the selected volume levels.
 
-Audio credits and generation details will be added before the final release.
+## Project Status
 
-## Remaining Work
+Maze Muncher is functionally complete.
 
-The current finishing list includes:
-
-- Music-volume controls
-- SFX-volume controls
-- Final audio balancing
-- Final enemy-speed tuning
-- Collision edge-case testing
-- Optional pause-menu actions
-- Optional lives shown as player icons
-- Optional player mouth animation
-- Optional warning flash near the end of power mode
-- Screenshot and repository presentation
-- Final full playthrough
-- Final test and coverage run
+Possible future additions may include extra mazes, new enemy behavior, animation improvements, executable packaging, or other optional enhancements. These are not required for the current release.
 
 ## Scope
 
@@ -297,7 +320,7 @@ It is a compact Python arcade project focused on:
 - Incremental progress
 - Reaching a finished, playable result
 
-Additional mazes, enemy personalities, level progression, animation, executable packaging, and other larger features may be considered after the first finished release.
+Additional mazes, enemy personalities, level progression, animation, and executable packaging may be considered in a future release.
 
 ## License
 
