@@ -382,6 +382,9 @@ def draw_pause_screen(
     title_font: pygame.font.Font,
     menu_font: pygame.font.Font,
     hud_font: pygame.font.Font,
+    music_volume: float,
+    sfx_volume: float,
+    selected_option: str,
 ) -> None:
     draw_game(screen, game, hud_font)
 
@@ -389,7 +392,7 @@ def draw_pause_screen(
         screen.get_size(),
         pygame.SRCALPHA,
     )
-    overlay.fill((0, 0, 0, 180))
+    overlay.fill((0, 0, 0, 200))
     screen.blit(overlay, (0, 0))
 
     title = title_font.render(
@@ -397,6 +400,46 @@ def draw_pause_screen(
         True,
         PLAYER_COLOR,
     )
+
+    music_marker = (
+        ">"
+        if selected_option == "MUSIC"
+        else " "
+    )
+    sfx_marker = (
+        ">"
+        if selected_option == "SFX"
+        else " "
+    )
+
+    music_text = menu_font.render(
+        f"{music_marker} MUSIC VOL "
+        f"{round(music_volume * 100)}%",
+        True,
+        (
+            PLAYER_COLOR
+            if selected_option == "MUSIC"
+            else TEXT_COLOR
+        ),
+    )
+
+    sfx_text = menu_font.render(
+        f"{sfx_marker} SFX VOL "
+        f"{round(sfx_volume * 100)}%",
+        True,
+        (
+            PLAYER_COLOR
+            if selected_option == "SFX"
+            else TEXT_COLOR
+        ),
+    )
+
+    controls = menu_font.render(
+        "UP/DOWN SELECT  LEFT/RIGHT CHANGE",
+        True,
+        TEXT_COLOR,
+    )
+
     resume = menu_font.render(
         "P OR ESC TO RESUME",
         True,
@@ -409,19 +452,35 @@ def draw_pause_screen(
     screen.blit(
         title,
         title.get_rect(
-            center=(
-                center_x,
-                center_y - 25,
-            )
+            center=(center_x, center_y - 85)
         ),
     )
+
+    screen.blit(
+        music_text,
+        music_text.get_rect(
+            center=(center_x, center_y - 25)
+        ),
+    )
+
+    screen.blit(
+        sfx_text,
+        sfx_text.get_rect(
+            center=(center_x, center_y + 10)
+        ),
+    )
+
+    screen.blit(
+        controls,
+        controls.get_rect(
+            center=(center_x, center_y + 65)
+        ),
+    )
+
     screen.blit(
         resume,
         resume.get_rect(
-            center=(
-                center_x,
-                center_y + 25,
-            )
+            center=(center_x, center_y + 100)
         ),
     )
 

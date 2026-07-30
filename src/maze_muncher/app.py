@@ -46,6 +46,11 @@ class EndScreenAction(Enum):
     MENU = auto()
 
 
+class PauseOption(Enum):
+    MUSIC = auto()
+    SFX = auto()
+
+
 WinAction = EndScreenAction
 
 
@@ -145,6 +150,8 @@ def main() -> None:
     game_over_music_started = False
 
     skip_frightened_move = False
+
+    pause_option = PauseOption.MUSIC
 
     running = True
 
@@ -273,12 +280,46 @@ def main() -> None:
                         audio.play(audio.victory)
                         app_state = AppState.WON
 
+
             elif app_state is AppState.PAUSED:
                 if event.key in (
                         pygame.K_p,
                         pygame.K_ESCAPE,
                 ):
                     app_state = AppState.PLAYING
+                    continue
+
+                if event.key in (
+                        pygame.K_UP,
+                        pygame.K_DOWN,
+                ):
+                    pause_option = (
+                        PauseOption.SFX
+                        if pause_option is PauseOption.MUSIC
+                        else PauseOption.MUSIC
+                    )
+                    continue
+
+                if event.key not in (
+                        pygame.K_LEFT,
+                        pygame.K_RIGHT,
+                ):
+                    continue
+
+                volume_change = (
+                    0.1
+                    if event.key == pygame.K_RIGHT
+                    else -0.1
+                )
+
+                if pause_option is PauseOption.MUSIC:
+                    audio.set_music_volume(
+                        audio.music_volume + volume_change
+                    )
+                else:
+                    audio.set_sfx_volume(
+                        audio.sfx_volume + volume_change
+                    )
 
             elif app_state in (
                 AppState.WON,
@@ -349,6 +390,9 @@ def main() -> None:
                 title_font,
                 menu_font,
                 hud_font,
+                audio.music_volume,
+                audio.sfx_volume,
+                pause_option.name,
             )
             pygame.display.set_caption(
                 "Maze Muncher | Paused"
