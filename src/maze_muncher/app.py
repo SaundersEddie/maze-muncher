@@ -214,6 +214,10 @@ def main() -> None:
             if event.type != pygame.KEYDOWN:
                 continue
 
+            if event.key == pygame.K_m:
+                audio.toggle_mute()
+                continue
+
             if app_state is AppState.MENU:
                 action = menu_action_for_key(event.key)
 

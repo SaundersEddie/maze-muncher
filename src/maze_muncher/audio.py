@@ -47,6 +47,7 @@ class AudioManager:
     enemy_eaten: pygame.mixer.Sound | None
     music_volume: float = DEFAULT_MUSIC_VOLUME
     sfx_volume: float = DEFAULT_SFX_VOLUME
+    muted: bool = False
 
     @classmethod
     def load(cls) -> "AudioManager":
@@ -93,7 +94,7 @@ class AudioManager:
 
         try:
             pygame.mixer.music.set_volume(
-                self.music_volume
+                0.0 if self.muted else self.music_volume
             )
         except pygame.error:
             pass
@@ -109,7 +110,16 @@ class AudioManager:
 
         for sound in self.sounds():
             if sound is not None:
-                sound.set_volume(self.sfx_volume)
+                sound.set_volume(
+                    0.0 if self.muted else self.sfx_volume
+                )
+
+    def toggle_mute(self) -> None:
+        self.muted = not self.muted
+
+        self.set_music_volume(self.music_volume)
+        self.set_sfx_volume(self.sfx_volume)
+
 
     @staticmethod
     def play(
@@ -128,7 +138,7 @@ class AudioManager:
         try:
             pygame.mixer.music.load(str(path))
             pygame.mixer.music.set_volume(
-                self.music_volume
+                0.0 if self.muted else self.music_volume
             )
             pygame.mixer.music.play(-1)
         except pygame.error:
