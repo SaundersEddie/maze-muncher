@@ -1,78 +1,172 @@
 # Maze Muncher
 
-Maze Muncher is a small Pac-Man-inspired game built in Python using Pygame Community Edition.
+Maze Muncher is a small maze-based arcade game built in Python using Pygame Community Edition.
 
-The goal is to create a compact, playable arcade-style game while keeping the underlying game logic clean, testable, and separate from the rendering layer.
+The project began as a quick-fire coding exercise: build something playable, keep the scope under control, test the important logic, and actually finish the thing instead of allowing it to become another glorious monument to unfinished ambition.
 
-This is a quick-fire coding project rather than a full recreation of Pac-Man. The focus is on sensible scope, automated tests, clear structure, and actually finishing the thing.
+It is inspired by classic maze-chase games, but it uses its own code, maze layout, presentation, structure, and gloriously named enemies: the meanies.
 
-## Project Goals
+## Current Status
 
-* Build a simple maze-based arcade game
-* Keep core game logic independent from Pygame where practical
-* Add automated tests alongside each feature
-* Maintain a small and achievable scope
-* Support development on macOS and Windows
-* Produce a playable project that can be expanded later
+Maze Muncher is now fully playable.
 
-## Planned Features
+The player can navigate the maze, collect pellets, activate power mode, eat frightened meanies, lose lives, pause the game, win by clearing the board, or reach game over by making several questionable navigational decisions.
 
-The initial version is expected to include:
+The main gameplay systems are working and covered by automated tests. The remaining work is primarily balancing, options, additional polish, documentation, and final release preparation.
 
-* One fixed maze
-* Grid-based player movement
-* Walls and valid movement paths
-* Collectible pellets
-* Power pellets
-* Score tracking
-* Player lives
-* At least one enemy
-* Collision handling
-* Win and game-over states
-* Keyboard controls
-* Simple Pygame rendering
+## Features
 
-Additional features may be considered after the first playable version is complete.
+- One fixed maze
+- Grid-based player movement
+- Arrow-key and WASD controls
+- Wall and boundary collision
+- Standard pellets
+- Power pellets
+- Score tracking
+- Three player lives
+- Two independently moving meanies
+- Random legal enemy movement
+- Meanies avoid immediately reversing direction unless trapped
+- Player and enemy collision handling
+- Temporary power mode
+- Frightened meanies move at half speed
+- Frightened meanies can be eaten for bonus points
+- Individual meanie colors
+- Ghost-style meanie rendering
+- Player facing direction
+- Player mouth rendering
+- Life-lost state
+- Win state
+- Game-over state
+- Replay and return-to-menu controls
+- Pause and resume
+- Music and sound effects
+- Separate game logic, rendering, and audio modules
+- Automated tests for the core game rules
+
+## Controls
+
+### Menu
+
+| Key | Action |
+| --- | --- |
+| `Enter` or `Space` | Start the game |
+| `Escape` | Quit |
+
+### Gameplay
+
+| Key | Action |
+| --- | --- |
+| Arrow keys | Move |
+| `W`, `A`, `S`, `D` | Move |
+| `P` | Pause or resume |
+| `Escape` | Pause or resume |
+
+### Win and Game Over Screens
+
+| Key | Action |
+| --- | --- |
+| `Enter` or `Space` | Play again |
+| `Escape` | Return to the main menu |
+
+## Scoring
+
+| Action | Points |
+| --- | ---: |
+| Collect a pellet | 10 |
+| Collect a power pellet | 50 |
+| Eat a frightened meanie | 200 |
+
+Power mode lasts for eight successful player moves.
+
+Blocked movement does not reduce the remaining power duration.
+
+## Gameplay
+
+The goal is to collect every pellet in the maze.
+
+The two meanies move independently on a timer. Their movement is random but restricted to valid paths, and they will not immediately reverse direction unless they reach a dead end.
+
+Colliding with a meanie during normal play costs one life and resets the player and meanies to their starting positions.
+
+Collecting a power pellet temporarily turns both meanies blue and slows their movement. During this period, colliding with a meanie eats it, awards bonus points, and returns that meanie to its starting position.
+
+The game is won when every pellet has been collected.
+
+The game ends when the player loses all three lives.
 
 ## Technical Approach
 
-Maze Muncher separates game rules from graphics wherever practical.
+Maze Muncher separates gameplay rules from Pygame-specific presentation wherever practical.
 
-Pygame will eventually handle:
+### Core Python modules handle
 
-* Window creation
-* Keyboard input
-* Drawing
-* Audio
-* Frame timing
+- Board representation
+- Position tracking
+- Movement rules
+- Wall and boundary collision
+- Pellet collection
+- Power-pellet behavior
+- Score calculation
+- Player lives
+- Game states
+- Enemy movement decisions
+- Collision resolution
+- Enemy resets
+- Win and game-over conditions
 
-Regular Python modules handle:
+### Pygame handles
 
-* Board data
-* Position tracking
-* Movement rules
-* Wall collision
-* Pellet collection
-* Game state
-* Enemy behaviour
-* Scoring
+- Window creation
+- Keyboard input
+- Rendering
+- Audio playback
+- Timed enemy movement
+- Frame timing
+- Menu and overlay presentation
 
-This keeps the important game rules testable without opening a graphical window.
+This separation keeps the important game behavior testable without requiring a graphical window.
+
+## Project Structure
+
+```text
+maze-muncher/
+├── assets/
+│   └── audio/
+│       ├── menu_theme.mp3
+│       ├── gameover_theme.mp3
+│       └── sfx/
+├── src/
+│   └── maze_muncher/
+│       ├── __init__.py
+│       ├── app.py
+│       ├── audio.py
+│       ├── board.py
+│       ├── enemy.py
+│       ├── game.py
+│       ├── movement.py
+│       ├── player.py
+│       └── renderer.py
+├── tests/
+├── .python-version
+├── pyproject.toml
+└── README.md
+```
 
 ## Requirements
 
-* Python 3.13
-* Pygame Community Edition
-* pytest
-* pytest-cov
+- Python 3.13
+- Pygame Community Edition
+- pytest
+- pytest-cov
 
-Python 3.14 is intentionally not supported for this project due to dependency compatibility issues encountered during setup.
+Python 3.14 is intentionally not supported by the current project configuration because dependency compatibility problems were encountered during the original setup.
 
 ## Development Setup
 
 ### macOS
 
-Create the virtual environment:
+Create a virtual environment:
 
 ```bash
 python3 -m venv .venv
@@ -86,7 +180,7 @@ source .venv/bin/activate
 
 ### Windows PowerShell
 
-Create the virtual environment:
+Create a virtual environment:
 
 ```powershell
 py -3.13 -m venv .venv
@@ -107,6 +201,12 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
+## Running the Game
+
+```bash
+python -m maze_muncher.app
+```
+
 ## Running Tests
 
 Run the full test suite:
@@ -115,129 +215,89 @@ Run the full test suite:
 python -m pytest
 ```
 
-Run tests with coverage:
+Run the tests with coverage:
 
 ```bash
 python -m pytest --cov=maze_muncher
 ```
 
-## Current Project Structure
-
-```text
-maze-muncher/
-├── src/
-│   └── maze_muncher/
-│       ├── __init__.py
-│       ├── board.py
-│       ├── movement.py
-│       └── player.py
-├── tests/
-│   ├── test_board.py
-│   ├── test_environment.py
-│   ├── test_movement.py
-│   └── test_player.py
-├── .python-version
-├── pyproject.toml
-└── README.md
-```
-
-## Current Features
-
-### Board
-
-The board currently supports:
-
-* Rectangular layout validation
-* Empty-layout validation
-* Position boundary checks
-* Wall detection
-* Movement validation
-* Pellet detection
-* Pellet collection
-* Remaining pellet counts
-
-### Movement
-
-The movement system currently supports:
-
-* Up
-* Down
-* Left
-* Right
-* Calculating the next grid position
-
-### Player
-
-The player currently supports:
-
-* Tracking its current position
-* Moving onto valid tiles
-* Refusing movement into walls
-* Refusing movement outside the board
-* Multiple sequential moves
-
-## Current Test Coverage
-
-The test suite currently verifies:
-
-* Python 3.13 is being used
-* Empty boards are rejected
-* Uneven board rows are rejected
-* Positions inside and outside the board are detected
-* Walls cannot be entered
-* Floor and pellet tiles can be entered
-* Direction changes produce the correct coordinates
-* The player moves onto valid tiles
-* The player remains in place when blocked
-* Pellets are detected
-* Pellets are removed when collected
-* Pellets cannot be collected twice
-* Remaining pellets are counted correctly
-
-## Current Status
-
-The project foundation and initial game logic are complete.
-
-Completed so far:
-
-* Repository created
-* Python 3.13 configured
-* macOS environment tested
-* Windows environment tested
-* Pygame Community Edition installed
-* pytest configured
-* Board representation created
-* Movement system created
-* Player movement created
-* Wall collision implemented
-* Pellet collection implemented
-* Automated tests passing
-
-The next development step is to connect player movement with pellet collection and scoring.
-
 ## Testing Philosophy
 
-Tests are being added as game rules are introduced rather than being bolted on after the game is finished.
+Tests are added as game rules are introduced rather than being bolted onto the project after development.
 
-The project focuses on testing behaviour, including:
+The test suite focuses on behavior, including:
 
-* Valid and invalid movement
-* Wall collision
-* Pellet collection
-* Score changes
-* Player and enemy collisions
-* Remaining lives
-* Win conditions
-* Game-over conditions
-* Enemy movement decisions
+- Board validation
+- Position boundaries
+- Valid and invalid movement
+- Wall collision
+- Pellet collection
+- Power-pellet collection
+- Score changes
+- Power-mode duration
+- Player and enemy collisions
+- Eating frightened enemies
+- Enemy movement decisions
+- Multiple-enemy behavior
+- Remaining lives
+- Player and enemy resets
+- Win conditions
+- Game-over conditions
+- Menu and end-screen keyboard actions
 
-Rendering tests will remain limited. The goal is to test game behaviour, not whether Pygame successfully drew a yellow circle.
+Rendering tests are intentionally limited. The useful question is whether the game behaves correctly, not whether Pygame successfully drew a yellow circle.
+
+## Audio
+
+Maze Muncher includes:
+
+- Menu music
+- Game-over music
+- Player-start sound
+- Meanie-spawn sound
+- Pellet-pickup sound
+- Power-pellet sound
+- Enemy-movement sound
+- Meanie-eaten sound
+- Life-lost sound
+- Victory sound
+- Game-over sound
+
+Audio volume controls and final sound balancing remain planned work.
+
+Audio credits and generation details will be added before the final release.
+
+## Remaining Work
+
+The current finishing list includes:
+
+- Music-volume controls
+- SFX-volume controls
+- Final audio balancing
+- Final enemy-speed tuning
+- Collision edge-case testing
+- Optional pause-menu actions
+- Optional lives shown as player icons
+- Optional player mouth animation
+- Optional warning flash near the end of power mode
+- Screenshot and repository presentation
+- Final full playthrough
+- Final test and coverage run
 
 ## Scope
 
-Maze Muncher is inspired by classic maze arcade games but is not intended to be an exact recreation of Pac-Man.
+Maze Muncher is not intended to be a complete recreation of Pac-Man.
 
-The project will use its own code, maze layout, presentation, and structure.
+It is a compact Python arcade project focused on:
+
+- Clean structure
+- Testable game rules
+- Controlled scope
+- Cross-platform development
+- Incremental progress
+- Reaching a finished, playable result
+
+Additional mazes, enemy personalities, level progression, animation, executable packaging, and other larger features may be considered after the first finished release.
 
 ## License
 
