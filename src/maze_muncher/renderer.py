@@ -14,6 +14,8 @@ PLAYER_COLOR = (255, 220, 0)
 TEXT_COLOR = (255, 255, 255)
 ENEMY_COLOR = (255, 60, 80)
 FRIGHTENED_ENEMY_COLOR = (70, 120, 255)
+EYE_WHITE_COLOR = (255, 255, 255)
+EYE_PUPIL_COLOR = (20, 40, 120)
 
 
 def draw_game(
@@ -58,6 +60,15 @@ def draw_game(
                     3,
                 )
 
+    _draw_player(screen, game)
+    _draw_enemies(screen, game)
+    _draw_hud(screen, game, hud_font)
+
+
+def _draw_player(
+    screen: pygame.Surface,
+    game: Game,
+) -> None:
     player_x = game.player.position.column * TILE_SIZE
     player_y = game.player.position.row * TILE_SIZE
 
@@ -71,6 +82,11 @@ def draw_game(
         TILE_SIZE // 2 - 3,
     )
 
+
+def _draw_enemies(
+    screen: pygame.Surface,
+    game: Game,
+) -> None:
     enemy_color = (
         FRIGHTENED_ENEMY_COLOR
         if game.is_powered_up
@@ -81,16 +97,109 @@ def draw_game(
         enemy_x = enemy.position.column * TILE_SIZE
         enemy_y = enemy.position.row * TILE_SIZE
 
-        pygame.draw.circle(
+        _draw_enemy_ghost(
             screen,
+            enemy_x,
+            enemy_y,
             enemy_color,
-            (
-                enemy_x + TILE_SIZE // 2,
-                enemy_y + TILE_SIZE // 2,
-            ),
-            TILE_SIZE // 2 - 4,
         )
 
+
+def _draw_enemy_ghost(
+    screen: pygame.Surface,
+    tile_x: int,
+    tile_y: int,
+    body_color: tuple[int, int, int],
+) -> None:
+    body_rect = pygame.Rect(
+        tile_x + 4,
+        tile_y + 8,
+        TILE_SIZE - 8,
+        TILE_SIZE - 8,
+    )
+    head_center = (
+        tile_x + TILE_SIZE // 2,
+        tile_y + 12,
+    )
+    head_radius = 10
+
+    pygame.draw.rect(screen, body_color, body_rect)
+    pygame.draw.circle(
+        screen,
+        body_color,
+        head_center,
+        head_radius,
+    )
+
+    scallop_radius = 4
+    scallop_y = tile_y + TILE_SIZE - 4
+
+    for scallop_x in (
+        tile_x + 8,
+        tile_x + 16,
+        tile_x + 24,
+    ):
+        pygame.draw.circle(
+            screen,
+            body_color,
+            (scallop_x, scallop_y),
+            scallop_radius,
+        )
+
+    left_eye = pygame.Rect(
+        tile_x + 8,
+        tile_y + 11,
+        6,
+        8,
+    )
+    right_eye = pygame.Rect(
+        tile_x + 18,
+        tile_y + 11,
+        6,
+        8,
+    )
+
+    pygame.draw.ellipse(
+        screen,
+        EYE_WHITE_COLOR,
+        left_eye,
+    )
+    pygame.draw.ellipse(
+        screen,
+        EYE_WHITE_COLOR,
+        right_eye,
+    )
+
+    left_pupil = pygame.Rect(
+        tile_x + 10,
+        tile_y + 14,
+        3,
+        4,
+    )
+    right_pupil = pygame.Rect(
+        tile_x + 20,
+        tile_y + 14,
+        3,
+        4,
+    )
+
+    pygame.draw.ellipse(
+        screen,
+        EYE_PUPIL_COLOR,
+        left_pupil,
+    )
+    pygame.draw.ellipse(
+        screen,
+        EYE_PUPIL_COLOR,
+        right_pupil,
+    )
+
+
+def _draw_hud(
+    screen: pygame.Surface,
+    game: Game,
+    hud_font: pygame.font.Font,
+) -> None:
     score_text = hud_font.render(
         f"SCORE {game.score}",
         True,
