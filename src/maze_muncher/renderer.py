@@ -376,6 +376,56 @@ def draw_life_lost_screen(
     )
 
 
+def draw_pause_screen(
+    screen: pygame.Surface,
+    game: Game,
+    title_font: pygame.font.Font,
+    menu_font: pygame.font.Font,
+    hud_font: pygame.font.Font,
+) -> None:
+    draw_game(screen, game, hud_font)
+
+    overlay = pygame.Surface(
+        screen.get_size(),
+        pygame.SRCALPHA,
+    )
+    overlay.fill((0, 0, 0, 180))
+    screen.blit(overlay, (0, 0))
+
+    title = title_font.render(
+        "PAUSED",
+        True,
+        PLAYER_COLOR,
+    )
+    resume = menu_font.render(
+        "P OR ESC TO RESUME",
+        True,
+        TEXT_COLOR,
+    )
+
+    center_x = screen.get_width() // 2
+    center_y = screen.get_height() // 2
+
+    screen.blit(
+        title,
+        title.get_rect(
+            center=(
+                center_x,
+                center_y - 25,
+            )
+        ),
+    )
+    screen.blit(
+        resume,
+        resume.get_rect(
+            center=(
+                center_x,
+                center_y + 25,
+            )
+        ),
+    )
+
+
 def draw_end_screen(
     screen: pygame.Surface,
     game: Game,

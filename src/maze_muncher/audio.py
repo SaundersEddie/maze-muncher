@@ -18,6 +18,10 @@ POWER_PELLET_SFX = Path("assets/audio/sfx/power_pellet.mp3")
 ENEMY_EATEN_SFX = Path("assets/audio/sfx/enemy_eaten.mp3")
 
 
+DEFAULT_MUSIC_VOLUME = 0.35
+DEFAULT_SFX_VOLUME = 0.45
+
+
 def _load_sound(
     path: Path,
 ) -> pygame.mixer.Sound | None:
@@ -41,10 +45,12 @@ class AudioManager:
     victory: pygame.mixer.Sound | None
     power_pellet: pygame.mixer.Sound | None
     enemy_eaten: pygame.mixer.Sound | None
+    music_volume: float = DEFAULT_MUSIC_VOLUME
+    sfx_volume: float = DEFAULT_SFX_VOLUME
 
     @classmethod
     def load(cls) -> "AudioManager":
-        return cls(
+        audio = cls(
             enemy_move=_load_sound(ENEMY_MOVE_SFX),
             game_over=_load_sound(GAME_OVER_SFX),
             life_lost=_load_sound(LIFE_LOST_SFX),
@@ -56,6 +62,55 @@ class AudioManager:
             enemy_eaten=_load_sound(ENEMY_EATEN_SFX),
         )
 
+        audio.set_music_volume(DEFAULT_MUSIC_VOLUME)
+        audio.set_sfx_volume(DEFAULT_SFX_VOLUME)
+
+        return audio
+
+    def sounds(
+        self,
+    ) -> tuple[pygame.mixer.Sound | None, ...]:
+        return (
+            self.enemy_move,
+            self.game_over,
+            self.life_lost,
+            self.meanie_spawn,
+            self.pickup,
+            self.player_start,
+            self.victory,
+            self.power_pellet,
+            self.enemy_eaten,
+        )
+
+    def set_music_volume(
+        self,
+        volume: float,
+    ) -> None:
+        self.music_volume = max(
+            0.0,
+            min(1.0, volume),
+        )
+
+        try:
+            pygame.mixer.music.set_volume(
+                self.music_volume
+            )
+        except pygame.error:
+            pass
+
+    def set_sfx_volume(
+        self,
+        volume: float,
+    ) -> None:
+        self.sfx_volume = max(
+            0.0,
+            min(1.0, volume),
+        )
+
+        for sound in self.sounds():
+            if sound is not None:
+                sound.set_volume(self.sfx_volume)
+
     @staticmethod
     def play(
         sound: pygame.mixer.Sound | None,
@@ -63,13 +118,18 @@ class AudioManager:
         if sound is not None:
             sound.play()
 
-    @staticmethod
-    def start_music(path: Path) -> None:
+    def start_music(
+        self,
+        path: Path,
+    ) -> None:
         if not path.exists():
             return
 
         try:
             pygame.mixer.music.load(str(path))
+            pygame.mixer.music.set_volume(
+                self.music_volume
+            )
             pygame.mixer.music.play(-1)
         except pygame.error:
             pass
@@ -107,4 +167,4 @@ class AudioManager:
             self.play(self.pickup)
         elif enemy_move:
             self.play(self.enemy_move)
-            
+

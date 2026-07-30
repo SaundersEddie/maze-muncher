@@ -15,6 +15,7 @@ from maze_muncher.renderer import (
     draw_life_lost_screen,
     draw_menu,
     draw_win_screen,
+    draw_pause_screen,
 )
 
 
@@ -29,6 +30,7 @@ ENEMY_MOVE_EVENT = pygame.USEREVENT + 1
 class AppState(Enum):
     MENU = auto()
     PLAYING = auto()
+    PAUSED = auto()
     LIFE_LOST = auto()
     WON = auto()
     GAME_OVER = auto()
@@ -142,6 +144,8 @@ def main() -> None:
     game_over_music_starts_at = 0
     game_over_music_started = False
 
+    skip_frightened_move = False
+
     running = True
 
     audio.start_menu_music()
@@ -155,6 +159,14 @@ def main() -> None:
             if event.type == ENEMY_MOVE_EVENT:
                 if app_state is not AppState.PLAYING:
                     continue
+
+                if game.is_powered_up:
+                    skip_frightened_move = not skip_frightened_move
+
+                    if skip_frightened_move:
+                        continue
+                else:
+                    skip_frightened_move = False
 
                 previous_score = game.score
                 previous_lives = game.lives
@@ -209,7 +221,15 @@ def main() -> None:
                 elif action is MenuAction.QUIT:
                     running = False
 
+
             elif app_state is AppState.PLAYING:
+                if event.key in (
+                        pygame.K_p,
+                        pygame.K_ESCAPE,
+                ):
+                    app_state = AppState.PAUSED
+                    continue
+
                 direction = direction_for_key(event.key)
 
                 if direction is None:
@@ -252,6 +272,13 @@ def main() -> None:
                         audio.stop_music()
                         audio.play(audio.victory)
                         app_state = AppState.WON
+
+            elif app_state is AppState.PAUSED:
+                if event.key in (
+                        pygame.K_p,
+                        pygame.K_ESCAPE,
+                ):
+                    app_state = AppState.PLAYING
 
             elif app_state in (
                 AppState.WON,
@@ -313,6 +340,18 @@ def main() -> None:
                 f"Maze Muncher "
                 f"| Score: {game.score} "
                 f"| Lives: {game.lives}"
+            )
+
+        elif app_state is AppState.PAUSED:
+            draw_pause_screen(
+                screen,
+                game,
+                title_font,
+                menu_font,
+                hud_font,
+            )
+            pygame.display.set_caption(
+                "Maze Muncher | Paused"
             )
 
         elif app_state is AppState.LIFE_LOST:
